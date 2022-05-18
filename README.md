@@ -1,6 +1,6 @@
 # subscriber
 
-Watermill subscriber that is setup to use our custom [dentech-floss/watermill-googlecloud-http](https://github.com/dentech-floss/watermill-googlecloud-http) lib to subscribe to messages delivered by http push subscriptions in GCP. How come push instead of pull using the "watermill-googlecloud" you may ask? That's because we're running on Cloud Run (which limits us to use push subscriptions) and want to be able to scale down to 0 instances.
+Watermill subscriber that is setup to use our custom [dentech-floss/watermill-googlecloud-http](https://github.com/dentech-floss/watermill-googlecloud-http) lib to subscribe to messages delivered by http push subscriptions in GCP. But why push with a custom lib instead of pull using the official [watermill-googlecloud](https://github.com/ThreeDotsLabs/watermill-googlecloud) lib you may ask? That's because we're running on Cloud Run where we are limited to use push subscriptions (and want to be able to scale down to 0 instances).
 
 The subscriber is preconfigured for distributed Opentelemetry tracing. For this we use both the official [watermill-opentelemetry](https://github.com/voi-oss/watermill-opentelemetry) project and our custom complement [dentech-floss/watermill-opentelemetry-go-extra](https://github.com/dentech-floss/watermill-opentelemetry-go-extra) to extract a propagated parent span and create a child span for this when we receive a message. With this support we get quite awesome observability of the system, since we can see and follow events flowing through the system in an APM of choice!
 
