@@ -52,7 +52,7 @@ Start subscribing to a topic (a url in this case since we're using http push) us
     router := subscriber.InitTracedRouter(logger.Logger.Logger) // the *zap.Logger is wrapped like a matryoshka doll :)
 
     // this Watermill router has centralized tracing support setup for us
-	router.AddNoPublisherHandler(
+    router.AddNoPublisherHandler(
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
         "/push-handlers/pubsub/appointment/claimed", // topic/url we're getting messages pushed to us on
         _subscriber,
