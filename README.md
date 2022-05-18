@@ -12,7 +12,7 @@ go get github.com/dentech-floss/subscriber@v0.1.0
 
 ## Usage
 
-Create the subscriber:
+Create the subscriber and start subscribing to a topic/url using a router with support for tracing:
 
 ```go
 package example
@@ -30,6 +30,8 @@ func main() {
     logger := logging.NewLogger(&logging.LoggerConfig{})
     defer logger.Sync()
 
+    service := service.NewAppointmentBigQueryIngestionService(logger)
+
     httpRouter := chi.NewRouter() // it is not necessary to use chi, you can use your mux of choice
 
     _subscriber := subscriber.NewSubscriber(
@@ -40,30 +42,21 @@ func main() {
         httpRouter.Handle, // register the http handler for the topic/url on chi
     )
 
-    service := service.NewAppointmentBigQueryIngestionService(...)
-
-    ...
-```
-
-Start subscribing to a topic (a url in this case since we're using http push) using a router with support for tracing:
-
-```go
-    ...
-
-    // this Watermill router has centralized tracing support setup for us
+    // this Watermill router have tracing middleware added to it
     router := subscriber.InitTracedRouter(logger.Logger.Logger) // the *zap.Logger is wrapped like a matryoshka doll :)
-
-    // this Watermill router has centralized tracing support setup for us
+    
     router.AddNoPublisherHandler(
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
         "/push-handlers/pubsub/appointment/claimed", // topic/url we're getting messages pushed to us on
         _subscriber,
-        service.HandleAppointmentClaimedEvent,
+        service.HandleAppointmentClaimedEvent, // our handler to invoke
     )
 
     ...
 }
 ```
+
+Handle the Watermill message by unmarshalling the payload and Ack/Nack the message:
 
 ```go
 func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg *message.Message) error {
