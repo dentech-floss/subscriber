@@ -40,6 +40,8 @@ func main() {
         httpRouter.Handle, // register the http handler for the topic/url on chi
     )
 
+    service := service.NewAppointmentBigQueryIngestionService(...)
+
     ...
 ```
 
@@ -56,38 +58,41 @@ Start subscribing to a topic (a url in this case since we're using http push) us
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
         "/push-handlers/pubsub/appointment/claimed", // topic/url we're getting messages pushed to us on
         _subscriber,
-        func(msg *message.Message) error {
-
-            // To receive the next message, `Ack()` must be called on the received message.
-            // If message processing failed and message should be redelivered `Nack()` should be called.
-
-            ctx := msg.Context() // will contain the trace/span
-            logWithContext := logger.WithContext(ctx) // To ensure trace information is part of the logs
-
-            event := &appointment_service_v1.AppointmentEvent{}
-            err := subscriber.UnmarshalPayload(msg.Payload, event)
-            if err != nil {
-                logWithContext.Error("Failed to unmarshal message", logging.ErrorField(err))
-
-                // We will never be able to handle this message so we don't want to nack it because
-                // then it will be redelivered so just log and ack to get rid of it instead.
-
-                msg.Ack()
-                return nil
-            }
-
-            // pass on the ctx for continued tracing...
-            err = someService.ActOnAppointmentClaimed(ctx, event.GetAppointmentClaimed())
-            if err != nil {
-                msg.Nack()
-                return err
-            }
-
-            msg.Ack()
-            return nil
-        },
+        service.HandleAppointmentClaimedEvent,
     )
 
     ...
+}
+```
+
+```go
+func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg *message.Message) error {
+
+    // To receive the next message, `Ack()` must be called on the received message.
+    // If message processing failed and message should be redelivered `Nack()` should be called.
+
+    // The context on the message contain the trace/span
+    ctx := msg.Context()
+    logWithContext := s.logger.WithContext(ctx)
+
+    event := &appointment_service_v1.AppointmentEvent{}
+    err := subscriber.UnmarshalPayload(msg.Payload, event)
+    if err != nil {
+        // We will never be able to handle this message so we don't want to nack it because
+        // then it will be redelivered so just log and ack to get rid of it instead.
+        logWithContext.Error("Failed to unmarshal message", logging.ErrorField(err))
+        msg.Ack()
+        return nil
+    }
+
+    // pass on the ctx for continued tracing...
+    err = s.IngestAppointmentClaimedEvent(ctx, event.GetAppointmentClaimed())
+    if err != nil {
+        msg.Nack() // redelivery...
+        return err
+    }
+
+    msg.Ack()
+    return nil
 }
 ```
