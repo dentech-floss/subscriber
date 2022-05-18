@@ -21,8 +21,6 @@ import (
     "github.com/dentech-floss/logging/pkg/logging"
     "github.com/dentech-floss/subscriber/pkg/subscriber"
 
-    appointment_service_v1 "go.buf.build/dentechse/go-grpc-gateway-openapiv2/dentechse/service-definitions/api/appointment/v1"
-
     "github.com/go-chi/chi"
 )
 
@@ -44,7 +42,7 @@ func main() {
 
     // this Watermill router have tracing middleware added to it
     router := subscriber.InitTracedRouter(logger.Logger.Logger) // the *zap.Logger is wrapped like a matryoshka doll :)
-    
+
     router.AddNoPublisherHandler(
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
         "/push-handlers/pubsub/appointment/claimed", // topic/url we're getting messages pushed to us on
@@ -59,6 +57,17 @@ func main() {
 Handle the Watermill message by unmarshalling the payload and Ack/Nack the message:
 
 ```go
+package example
+
+import (
+    "github.com/dentech-floss/logging/pkg/logging"
+    "github.com/dentech-floss/subscriber/pkg/subscriber"
+
+    appointment_service_v1 "go.buf.build/dentechse/go-grpc-gateway-openapiv2/dentechse/service-definitions/api/appointment/v1"
+)
+
+...
+
 func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg *message.Message) error {
 
     // To receive the next message, `Ack()` must be called on the received message.
