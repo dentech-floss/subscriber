@@ -19,14 +19,24 @@ package example
 
 import (
     "github.com/dentech-floss/logging/pkg/logging"
+    "github.com/dentech-floss/metadata/pkg/metadata"
+    "github.com/dentech-floss/revision/pkg/revision"
     "github.com/dentech-floss/subscriber/pkg/subscriber"
 
     "github.com/go-chi/chi"
 )
 
 func main() {
-    logger := logging.NewLogger(&logging.LoggerConfig{})
-    defer logger.Sync()
+
+    metadata := metadata.NewMetadata()
+
+    logger := logging.NewLogger(
+        &logging.LoggerConfig{
+            OnGCP:       metadata.OnGCP,
+            ServiceName: revision.ServiceName,
+        },
+    )
+    defer logger.Sync() // flushes buffer, if any
 
     service := service.NewAppointmentBigQueryIngestionService(logger)
 
@@ -35,7 +45,7 @@ func main() {
     _subscriber := subscriber.NewSubscriber(
         logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
         &subscriber.SubscriberConfig{
-            OnGCP: true,
+            OnGCP: metadata.OnGCP,
         },
         httpRouter.Handle, // register the http handler for the topic/url on chi
     )
