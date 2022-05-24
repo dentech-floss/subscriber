@@ -1,6 +1,8 @@
 package subscriber
 
 import (
+	"context"
+
 	googlecloud_http "github.com/dentech-floss/watermill-googlecloud-http/pkg/googlecloud/http"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -16,7 +18,7 @@ import (
 )
 
 type SubscriberConfig struct {
-	OnGCP bool
+	// Nada here atm...
 }
 
 func (c *SubscriberConfig) setDefaults() {
@@ -34,19 +36,12 @@ func NewSubscriber(
 ) *Subscriber {
 	config.setDefaults()
 
-	var subscriber message.Subscriber
-	var err error
-
-	if config.OnGCP {
-		subscriber, err = googlecloud_http.NewSubscriber(
-			googlecloud_http.SubscriberConfig{
-				RegisterHttpHandler: registerHttpHandler,
-			},
-			watermillzap.NewLogger(logger),
-		)
-	} else {
-		subscriber = NewFakeSubscriber()
-	}
+	subscriber, err := googlecloud_http.NewSubscriber(
+		googlecloud_http.SubscriberConfig{
+			RegisterHttpHandler: registerHttpHandler,
+		},
+		watermillzap.NewLogger(logger),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -65,6 +60,36 @@ func InitTracedRouter(logger *zap.Logger) *message.Router {
 	router.AddMiddleware(wotel.Trace())
 
 	return router
+}
+
+// Handles a message by first unmarshalling its payload to the provided 'target'
+// and then invoking the provided handler with the context of the message. If the
+// unmarshalling fails then we will never be able to handle this message so we ack
+// it to "get rid of it" and return an error. But if the provided handler fails then
+// we the message will be nack'ed (to trigger a redelivery) and no error is returned
+// (it's up to the provided handler to log this error).
+//
+// The rules are as follows: To receive the next message, `Ack()` must be called on
+// the received message, but if the message processing failed and message should be
+// redelivered then `Nack()` shall be called.
+func HandleMessage(
+	msg *message.Message,
+	target proto.Message,
+	handler func(ctx context.Context) error,
+) error {
+	err := UnmarshalPayload(msg.Payload, target)
+	if err != nil {
+		msg.Ack()
+		return err
+	} else {
+		err := handler(msg.Context()) // tracing...
+		if err != nil {
+			msg.Nack()
+			return nil
+		}
+		msg.Ack()
+		return nil
+	}
 }
 
 func UnmarshalPayload(payload []byte, target proto.Message) error {

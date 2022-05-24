@@ -7,7 +7,7 @@ The subscriber is preconfigured for distributed Opentelemetry tracing. For this 
 ## Install
 
 ```
-go get github.com/dentech-floss/subscriber@v0.1.0
+go get github.com/dentech-floss/subscriber@v0.1.1
 ```
 
 ## Usage
@@ -44,9 +44,7 @@ func main() {
 
     _subscriber := subscriber.NewSubscriber(
         logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
-        &subscriber.SubscriberConfig{
-            OnGCP: metadata.OnGCP,
-        },
+        &subscriber.SubscriberConfig{}, // nothing required to provide here atm
         httpRouter.Handle, // register the http handler for the topic/url on chi
     )
 
@@ -80,31 +78,29 @@ import (
 
 func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg *message.Message) error {
 
-    // To receive the next message, `Ack()` must be called on the received message.
-    // If message processing failed and message should be redelivered `Nack()` should be called.
-
-    // The context on the message contain the trace/span
-    ctx := msg.Context()
-    logWithContext := s.logger.WithContext(ctx)
-
     event := &appointment_service_v1.AppointmentEvent{}
-    err := subscriber.UnmarshalPayload(msg.Payload, event)
-    if err != nil {
-        // We will never be able to handle this message so we don't want to nack it because
-        // then it will be redelivered so just log and ack to get rid of it instead.
-        logWithContext.Error("Failed to unmarshal message", logging.ErrorField(err))
-        msg.Ack()
+    err := subscriber.HandleMessage(msg, request, func(ctx context.Context) error {
+        err := s.repo.InsertAppointmentClaimedEvent(ctx, event.GetAppointmentClaimed())
+        if err != nil {
+            s.logger.WithContext(ctx).Error(
+                "Failed to insert 'AppointmentClaimedEvent'",
+                logging.StringField("msg_uuid", msg.UUID),
+                logging.ProtoField("request", request),
+                logging.ErrorField(err),
+            )
+            return err
+        }
         return nil
-    }
-
-    // pass on the ctx for continued tracing...
-    err = s.IngestAppointmentClaimedEvent(ctx, event.GetAppointmentClaimed())
+    },
+    )
     if err != nil {
-        msg.Nack() // redelivery...
-        return err
+        s.logger.WithContext(msg.Context()).Error(
+            "Failed to unmarshal 'AppointmentClaimedEvent', ack'ed the message get rid of it",
+            logging.StringField("msg_uuid", msg.UUID),
+            logging.StringField("payload", string(msg.Payload)),
+            logging.ErrorField(err),
+        )
     }
-
-    msg.Ack()
-    return nil
+    return err
 }
 ```
