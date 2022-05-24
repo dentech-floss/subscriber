@@ -79,7 +79,7 @@ import (
 func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg *message.Message) error {
 
     event := &appointment_service_v1.AppointmentEvent{}
-    // HandleMessage will take care or marhshalling + ack/nack'ing the message for us
+    // HandleMessage will take care or marshalling + ack/nack'ing the message for us
     err := subscriber.HandleMessage(msg, request, func(ctx context.Context) error {
         err := s.repo.InsertAppointmentClaimedEvent(ctx, event.GetAppointmentClaimed())
         if err != nil {
