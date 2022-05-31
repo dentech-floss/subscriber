@@ -23,6 +23,8 @@ import (
     "github.com/dentech-floss/revision/pkg/revision"
     "github.com/dentech-floss/subscriber/pkg/subscriber"
 
+    "github.com/ThreeDotsLabs/watermill/message/router/plugin"
+
     "github.com/go-chi/chi"
 )
 
@@ -52,6 +54,7 @@ func main() {
 
     // this Watermill router have tracing middleware added to it
     router := subscriber.InitTracedRouter(logger.Logger.Logger) // the *zap.Logger is wrapped like a matryoshka doll :)
+    router.AddPlugin(plugin.SignalsHandler) // kills the router after SIGINT or SIGTERM is sent to the process
 
     router.AddNoPublisherHandler(
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
