@@ -36,9 +36,11 @@ func main() {
             ServiceName: revision.ServiceName,
         },
     )
-    defer logger.Sync() // flushes buffer, if any
+    defer logger.Sync()
 
-    service := service.NewAppointmentBigQueryIngestionService(logger)
+    ...
+
+    bqIngestionService := service.NewAppointmentBigQueryIngestionService(repo, logger)
 
     httpRouter := chi.NewRouter() // it is not necessary to use chi, you can use your mux of choice
 
@@ -55,10 +57,22 @@ func main() {
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
         "/push-handlers/pubsub/appointment/claimed", // topic/url we're getting messages pushed to us on
         _subscriber,
-        service.HandleAppointmentClaimedEvent, // our handler to invoke
+        bqIngestionService.HandleAppointmentClaimedEvent, // our handler to invoke
     )
 
-    ...
+    go func() {
+        err := router.Run(ctx)
+        if err != nil {
+            panic(err)
+        }
+    }()
+
+    err := http.ListenAndServe(":"+strconv.Itoa(*config.Port), httpRouter)
+    if errors.Is(err, http.ErrServerClosed) {
+        logger.Info("Server closed")
+    } else {
+        logger.Error("Server failed", logging.ErrorField(err))
+    }
 }
 ```
 
@@ -80,13 +94,13 @@ func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg 
 
     event := &appointment_service_v1.AppointmentEvent{}
     // HandleMessage will take care or marshalling + ack/nack'ing the message for us
-    err := subscriber.HandleMessage(msg, request, func(ctx context.Context) error {
+    err := subscriber.HandleMessage(msg, event, func(ctx context.Context) error {
         err := s.repo.InsertAppointmentClaimedEvent(ctx, event.GetAppointmentClaimed())
         if err != nil {
             s.logger.WithContext(ctx).Error(
                 "Failed to insert 'AppointmentClaimedEvent'",
                 logging.StringField("msg_uuid", msg.UUID),
-                logging.ProtoField("request", request),
+                logging.ProtoField("event", event),
                 logging.ErrorField(err),
             )
             return err
@@ -96,7 +110,7 @@ func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg 
     )
     if err != nil {
         s.logger.WithContext(msg.Context()).Error(
-            "Failed to unmarshal 'AppointmentClaimedEvent', ack'ed the message get rid of it",
+            "Failed to unmarshal 'AppointmentClaimedEvent', ack'ed the message to get rid of it",
             logging.StringField("msg_uuid", msg.UUID),
             logging.StringField("payload", string(msg.Payload)),
             logging.ErrorField(err),
