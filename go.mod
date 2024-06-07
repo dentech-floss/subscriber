@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/ThreeDotsLabs/watermill v1.3.5
 	github.com/dentech-floss/watermill-googlecloud-http v0.1.1
-	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.0
+	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
 	github.com/garsue/watermillzap v1.2.0
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	go.uber.org/zap v1.27.0
@@ -30,9 +30,9 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
-	go.opentelemetry.io/otel v1.24.0 // indirect
-	go.opentelemetry.io/otel/metric v1.24.0 // indirect
-	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	go.opentelemetry.io/otel v1.27.0 // indirect
+	go.opentelemetry.io/otel/metric v1.27.0 // indirect
+	go.opentelemetry.io/otel/trace v1.27.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
