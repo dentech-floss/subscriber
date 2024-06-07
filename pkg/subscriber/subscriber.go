@@ -62,7 +62,7 @@ func InitTracedRouter(logger *zap.Logger) *message.Router {
 	return router
 }
 
-// Handles a message by first unmarshalling its payload to the provided 'target'
+// HandleMessage - Handles a message by first unmarshalling its payload to the provided 'target'
 // and then invoking the provided handler with the context of the message. If the
 // unmarshalling fails then we will never be able to handle this message so we ack
 // it to "get rid of it" and return an error. But if the provided handler fails then
@@ -92,6 +92,9 @@ func HandleMessage(
 	}
 }
 
-func UnmarshalPayload(payload []byte, target proto.Message) error {
+func UnmarshalPayload(
+	payload []byte,
+	target proto.Message,
+) error {
 	return proto.Unmarshal(payload, target)
 }
