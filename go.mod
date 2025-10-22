@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.3.5
-	github.com/dentech-floss/watermill-googlecloud-http v0.1.1
+	github.com/dentech-floss/watermill-googlecloud-http v0.1.3
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
 	github.com/garsue/watermillzap v1.2.0
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
