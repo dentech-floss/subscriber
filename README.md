@@ -7,7 +7,7 @@ The subscriber is preconfigured for distributed Opentelemetry tracing. For this 
 ## Install
 
 ```
-go get github.com/dentech-floss/subscriber@v0.1.1
+go get github.com/dentech-floss/subscriber@v0.1.3
 ```
 
 ## Usage
@@ -122,3 +122,4 @@ func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg 
     return err
 }
 ```
+
