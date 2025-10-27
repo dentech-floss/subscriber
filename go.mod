@@ -1,6 +1,6 @@
 module github.com/dentech-floss/subscriber
 
-go 1.22
+go 1.23
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.3.5
@@ -9,7 +9,7 @@ require (
 	github.com/garsue/watermillzap v1.2.0
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	go.uber.org/zap v1.27.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
