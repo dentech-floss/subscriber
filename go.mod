@@ -1,9 +1,9 @@
 module github.com/dentech-floss/subscriber
 
-go 1.23
+go 1.23.0
 
 require (
-	github.com/ThreeDotsLabs/watermill v1.3.5
+	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/dentech-floss/watermill-googlecloud-http v0.1.3
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
 	github.com/garsue/watermillzap v1.2.0
@@ -37,7 +37,7 @@ require (
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/api v0.183.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
