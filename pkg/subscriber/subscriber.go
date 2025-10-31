@@ -72,24 +72,27 @@ func InitTracedRouter(logger *zap.Logger) *message.Router {
 // The rules are as follows: To receive the next message, `Ack()` must be called on
 // the received message, but if the message processing failed and message should be
 // redelivered then `Nack()` shall be called.
-func HandleMessage(
+func HandleMessage[T proto.Message](
 	msg *message.Message,
-	target proto.Message,
-	handler func(ctx context.Context) error,
+	handler func(ctx context.Context, target T) error,
 ) error {
+	var target T
+
 	err := UnmarshalPayload(msg.Payload, target)
 	if err != nil {
 		msg.Ack()
 		return err
-	} else {
-		err := handler(msg.Context()) // tracing...
-		if err != nil {
-			msg.Nack()
-			return nil
-		}
-		msg.Ack()
+	}
+
+	err = handler(msg.Context(), target) // tracing...
+	if err != nil {
+		msg.Nack()
 		return nil
 	}
+
+	msg.Ack()
+
+	return nil
 }
 
 func UnmarshalPayload(
