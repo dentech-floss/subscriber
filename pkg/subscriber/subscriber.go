@@ -2,6 +2,7 @@ package subscriber
 
 import (
 	"context"
+	"reflect"
 
 	googlecloud_http "github.com/dentech-floss/watermill-googlecloud-http/pkg/googlecloud/http"
 
@@ -76,7 +77,9 @@ func HandleMessage[T proto.Message](
 	msg *message.Message,
 	handler func(ctx context.Context, target T) error,
 ) error {
-	var target T
+	var zero T
+	elemType := reflect.TypeOf(zero).Elem()
+	target := reflect.New(elemType).Interface().(T)
 
 	err := UnmarshalPayload(msg.Payload, target)
 	if err != nil {
