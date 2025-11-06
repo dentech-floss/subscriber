@@ -2,6 +2,7 @@ package subscriber
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	googlecloud_http "github.com/dentech-floss/watermill-googlecloud-http/pkg/googlecloud/http"
@@ -78,7 +79,13 @@ func HandleMessage[T proto.Message](
 	handler func(ctx context.Context, target T) error,
 ) error {
 	var zero T
-	elemType := reflect.TypeOf(zero).Elem()
+	t := reflect.TypeOf(zero)
+	if t.Kind() != reflect.Pointer {
+		msg.Ack()
+		return fmt.Errorf("generic type T must be a pointer to a proto.Message, got %s", t.Kind())
+	}
+
+	elemType := t.Elem()
 	target := reflect.New(elemType).Interface().(T)
 
 	err := UnmarshalPayload(msg.Payload, target)
