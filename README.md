@@ -56,7 +56,7 @@ func main() {
     router := subscriber.InitTracedRouter(logger.Logger.Logger) // the *zap.Logger is wrapped like a matryoshka doll :)
     router.AddPlugin(plugin.SignalsHandler) // kills the router after SIGINT or SIGTERM is sent to the process
 
-    router.AddNoPublisherHandler(
+    router.AddConsumerHandler(
         "pubsub.Subscribe/appointment/claimed", // the name of our handler
         "/push-handlers/pubsub/appointment/claimed", // topic/url we're getting messages pushed to us on
         _subscriber,
@@ -95,9 +95,23 @@ import (
 
 func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg *message.Message) error {
 
-    event := &appointment_service_v1.AppointmentEvent{}
     // HandleMessage will take care or marshalling + ack/nack'ing the message for us
-    err := subscriber.HandleMessage(msg, event, func(ctx context.Context) error {
+    err := subscriber.HandleMessage(msg, s.handleAppointmentClaimedEvent)
+    if err != nil {
+        s.logger.WithContext(msg.Context()).Error(
+            "Failed to unmarshal 'AppointmentClaimedEvent', ack'ed the message to get rid of it",
+            logging.StringField("msg_uuid", msg.UUID),
+            logging.StringField("payload", string(msg.Payload)),
+            logging.ErrorField(err),
+        )
+    }
+    return err
+}
+
+func (s *AppointmentBigQueryIngestionService) handleAppointmentClaimedEvent(
+  ctx context.Context,
+  event *appointment_service_v1.AppointmentEvent,
+) error {
         err := s.repo.InsertAppointmentClaimedEvent(ctx, event.GetAppointmentClaimed())
         if err != nil {
             s.logger.WithContext(ctx).Error(
@@ -109,17 +123,5 @@ func (s *AppointmentBigQueryIngestionService) HandleAppointmentClaimedEvent(msg 
             return err
         }
         return nil
-    },
-    )
-    if err != nil {
-        s.logger.WithContext(msg.Context()).Error(
-            "Failed to unmarshal 'AppointmentClaimedEvent', ack'ed the message to get rid of it",
-            logging.StringField("msg_uuid", msg.UUID),
-            logging.StringField("payload", string(msg.Payload)),
-            logging.ErrorField(err),
-        )
     }
-    return err
-}
 ```
-
