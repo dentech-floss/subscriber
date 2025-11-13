@@ -5,18 +5,15 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/dentech-floss/logging/pkg/logging"
 	googlecloud_http "github.com/dentech-floss/watermill-googlecloud-http/pkg/googlecloud/http"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-
-	"github.com/garsue/watermillzap"
 
 	wotelfloss "github.com/dentech-floss/watermill-opentelemetry-go-extra/pkg/opentelemetry"
 	wotel "github.com/voi-oss/watermill-opentelemetry/pkg/opentelemetry"
 
 	"google.golang.org/protobuf/proto"
-
-	"go.uber.org/zap"
 )
 
 type SubscriberConfig struct {
@@ -32,7 +29,7 @@ type Subscriber struct {
 }
 
 func NewSubscriber(
-	logger *zap.Logger,
+	logger *logging.Logger,
 	config *SubscriberConfig,
 	registerHttpHandler googlecloud_http.RegisterHttpHandler,
 ) *Subscriber {
@@ -42,7 +39,7 @@ func NewSubscriber(
 		googlecloud_http.SubscriberConfig{
 			RegisterHttpHandler: registerHttpHandler,
 		},
-		watermillzap.NewLogger(logger),
+		logging.NewWatermillAdapter(logger),
 	)
 	if err != nil {
 		panic(err)
@@ -51,8 +48,11 @@ func NewSubscriber(
 	return &Subscriber{subscriber}
 }
 
-func InitTracedRouter(logger *zap.Logger) *message.Router {
-	router, err := message.NewRouter(message.RouterConfig{}, watermillzap.NewLogger(logger))
+func InitTracedRouter(logger *logging.Logger) *message.Router {
+	router, err := message.NewRouter(
+		message.RouterConfig{},
+		logging.NewWatermillAdapter(logger),
+	)
 	if err != nil {
 		panic(err)
 	}
