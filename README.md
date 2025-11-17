@@ -7,7 +7,7 @@ The subscriber is preconfigured for distributed Opentelemetry tracing. For this 
 ## Install
 
 ```
-go get github.com/dentech-floss/subscriber@v0.2.0
+go get github.com/dentech-floss/subscriber@v0.3.0
 ```
 
 ## Usage
@@ -34,8 +34,8 @@ func main() {
 
     logger := logging.NewLogger(
         &logging.LoggerConfig{
-            OnGCP:       metadata.OnGCP,
             ServiceName: revision.ServiceName,
+            MinLevel:    logging.InfoLevel,
         },
     )
     defer logger.Sync()
@@ -47,13 +47,13 @@ func main() {
     httpRouter := chi.NewRouter() // it is not necessary to use chi, you can use your mux of choice
 
     _subscriber := subscriber.NewSubscriber(
-        logger.Logger.Logger, // the *zap.Logger is wrapped like a matryoshka doll :)
+        logger, // pass our logger
         &subscriber.SubscriberConfig{}, // nothing required to provide here atm
         httpRouter.Handle, // register the http handler for the topic/url on chi
     )
 
     // this Watermill router have tracing middleware added to it
-    router := subscriber.InitTracedRouter(logger.Logger.Logger) // the *zap.Logger is wrapped like a matryoshka doll :)
+    router := subscriber.InitTracedRouter(logger) // adds tracing middleware to the router
     router.AddPlugin(plugin.SignalsHandler) // kills the router after SIGINT or SIGTERM is sent to the process
 
     router.AddConsumerHandler(
