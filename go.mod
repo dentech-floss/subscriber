@@ -8,7 +8,7 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/dentech-floss/logging v0.3.5
 	github.com/dentech-floss/watermill-googlecloud-http v0.1.3
-	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1
+	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	google.golang.org/protobuf v1.36.11
 )
