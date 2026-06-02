@@ -20,8 +20,8 @@ github.com/dentech-floss/logging v0.3.5 h1:nxowgkFqnMbSdeqo+N/nD+vJSJB8mrYBCxROT
 github.com/dentech-floss/logging v0.3.5/go.mod h1:BWR/846Dfl39hQ2DxGm99lQRcTR7HM0M4WYebjoaets=
 github.com/dentech-floss/watermill-googlecloud-http v0.1.3 h1:2v4WyF3sZfO7cxpha/Ck1f6XWzzirOLpHiN/VcBP4ys=
 github.com/dentech-floss/watermill-googlecloud-http v0.1.3/go.mod h1:hg3nw/aFVaxOWcPrVKjoDeVuQ9XCys8F0YQ5pcIQUHQ=
-github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1 h1:HIfbxzySVK2tTiG6Y/3Xns17tY1Cl9/Qt2gnuwsRxuM=
-github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.1/go.mod h1:hkpeHkMjmMLpS8yy0oPLTATiuCqBkP4oNtr9NpBvOM4=
+github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2 h1:CrKBLfmfg4kQv9khoI3RYdbLCh/8o2VoifcaHBgBYt8=
+github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2/go.mod h1:E+GYTqafymfwj7z0Y0fSNGoo1rRP4S3KbR6qF0XAmNE=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
