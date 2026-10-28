@@ -7,7 +7,7 @@ The subscriber is preconfigured for distributed Opentelemetry tracing. For this 
 ## Install
 
 ```
-go get github.com/dentech-floss/subscriber@v0.3.0
+go get github.com/dentech-floss/subscriber@v0.3.2
 ```
 
 ## Usage
