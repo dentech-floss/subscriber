@@ -10,6 +10,15 @@ The subscriber is preconfigured for distributed Opentelemetry tracing. For this 
 go get github.com/dentech-floss/subscriber@v0.3.2
 ```
 
+## Broker
+
+`SubscriberConfig.Broker` (or the `BROKER` environment variable, if the field is empty) picks where messages come from:
+
+- `pubsub` (default): Google Cloud Pub/Sub push subscriptions. Each topic is an HTTP path registered on your mux, as below.
+- `nats`: the service gets its messages from NATS, so **no HTTP push handlers are registered** and the push paths don't exist. Receiving from NATS isn't implemented yet: until it is, the handlers get no messages, and `NewSubscriber` logs a warning saying so. The router and its handlers keep running, so the service starts as usual.
+
+Any other value panics in `NewSubscriber`.
+
 ## Usage
 
 Create the subscriber and start subscribing to a topic/url using a router with support for tracing:
