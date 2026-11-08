@@ -7,7 +7,7 @@ require (
 	github.com/ThreeDotsLabs/watermill-nats/v2 v2.2.0
 	github.com/dentech-floss/logging v0.5.0
 	github.com/dentech-floss/watermill-googlecloud-http v0.1.5
-	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2
+	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.3
 	github.com/nats-io/nats-server/v2 v2.15.2
 	github.com/nats-io/nats.go v1.55.0
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
@@ -41,9 +41,10 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 // indirect
-	go.opentelemetry.io/otel v1.46.0 // indirect
-	go.opentelemetry.io/otel/metric v1.46.0 // indirect
-	go.opentelemetry.io/otel/trace v1.46.0 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/log v1.47.0 // indirect
+	go.opentelemetry.io/otel/metric v1.47.0 // indirect
+	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
