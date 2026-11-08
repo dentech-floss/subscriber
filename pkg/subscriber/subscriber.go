@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"sync"
 
 	"github.com/dentech-floss/logging/pkg/logging"
 	googlecloud_http "github.com/dentech-floss/watermill-googlecloud-http/pkg/googlecloud/http"
@@ -23,9 +22,9 @@ const (
 	// subscriptions: each topic is an HTTP path registered on the service's
 	// mux. This is the default.
 	BrokerPubSub = "pubsub"
-	// BrokerNATS is for services that get their messages from NATS. No HTTP
-	// push handlers are registered, so the push paths don't exist. Receiving
-	// from NATS isn't implemented yet: until it is, handlers get no messages.
+	// BrokerNATS receives messages from durable NATS JetStream consumers,
+	// one per push URL, found through the NATS mapping file. No HTTP push
+	// handlers are registered, so the push paths don't exist.
 	BrokerNATS = "nats"
 )
 
@@ -33,6 +32,12 @@ type SubscriberConfig struct {
 	// Broker is BrokerPubSub or BrokerNATS. Defaults to the BROKER
 	// environment variable, and to BrokerPubSub if that's unset.
 	Broker string
+	// Service is the service's name, which picks its consumers in the
+	// NATS mapping. Defaults to the APP_NAME environment variable. Only
+	// used with BrokerNATS.
+	Service string
+	// NATS is the connection and mapping file. Only used with BrokerNATS.
+	NATS NATSConfig
 }
 
 func (c *SubscriberConfig) setDefaults() {
@@ -42,6 +47,10 @@ func (c *SubscriberConfig) setDefaults() {
 	if c.Broker == "" {
 		c.Broker = BrokerPubSub
 	}
+	if c.Service == "" {
+		c.Service = os.Getenv("APP_NAME")
+	}
+	c.NATS.setDefaults()
 }
 
 type Subscriber struct {
@@ -58,10 +67,11 @@ func NewSubscriber(
 	switch config.Broker {
 	case BrokerPubSub:
 	case BrokerNATS:
-		logger.Warn(
-			"BROKER=nats: no Pub/Sub push handlers are registered, and receiving from NATS isn't implemented yet, so this service gets no messages",
-		)
-		return &Subscriber{newIdleSubscriber()}
+		subscriber, err := newNATSSubscriber(logger, config.Service, config.NATS)
+		if err != nil {
+			panic(fmt.Sprintf("subscriber: BROKER=nats: %v", err))
+		}
+		return &Subscriber{subscriber}
 	default:
 		panic(fmt.Sprintf("subscriber: unknown broker %q (BROKER must be %q or %q)", config.Broker, BrokerPubSub, BrokerNATS))
 	}
@@ -77,43 +87,6 @@ func NewSubscriber(
 	}
 
 	return &Subscriber{subscriber}
-}
-
-// idleSubscriber delivers no messages. Its channels stay open until Close, so
-// the router's handlers keep running instead of stopping the router.
-type idleSubscriber struct {
-	mu       sync.Mutex
-	closed   bool
-	channels []chan *message.Message
-}
-
-func newIdleSubscriber() *idleSubscriber {
-	return &idleSubscriber{}
-}
-
-func (s *idleSubscriber) Subscribe(_ context.Context, _ string) (<-chan *message.Message, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	ch := make(chan *message.Message)
-	if s.closed {
-		close(ch)
-		return ch, nil
-	}
-	s.channels = append(s.channels, ch)
-	return ch, nil
-}
-
-func (s *idleSubscriber) Close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
-		return nil
-	}
-	s.closed = true
-	for _, ch := range s.channels {
-		close(ch)
-	}
-	return nil
 }
 
 func InitTracedRouter(logger *logging.Logger) *message.Router {
