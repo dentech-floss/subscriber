@@ -3,7 +3,9 @@ package subscriber
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
+	"sync"
 
 	"github.com/dentech-floss/logging/pkg/logging"
 	googlecloud_http "github.com/dentech-floss/watermill-googlecloud-http/pkg/googlecloud/http"
@@ -16,12 +18,30 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const (
+	// BrokerPubSub receives messages from Google Cloud Pub/Sub push
+	// subscriptions: each topic is an HTTP path registered on the service's
+	// mux. This is the default.
+	BrokerPubSub = "pubsub"
+	// BrokerNATS is for services that get their messages from NATS. No HTTP
+	// push handlers are registered, so the push paths don't exist. Receiving
+	// from NATS isn't implemented yet: until it is, handlers get no messages.
+	BrokerNATS = "nats"
+)
+
 type SubscriberConfig struct {
-	// Nada here atm...
+	// Broker is BrokerPubSub or BrokerNATS. Defaults to the BROKER
+	// environment variable, and to BrokerPubSub if that's unset.
+	Broker string
 }
 
 func (c *SubscriberConfig) setDefaults() {
-	// Nada to do here atm...
+	if c.Broker == "" {
+		c.Broker = os.Getenv("BROKER")
+	}
+	if c.Broker == "" {
+		c.Broker = BrokerPubSub
+	}
 }
 
 type Subscriber struct {
@@ -35,6 +55,17 @@ func NewSubscriber(
 ) *Subscriber {
 	config.setDefaults()
 
+	switch config.Broker {
+	case BrokerPubSub:
+	case BrokerNATS:
+		logger.Warn(
+			"BROKER=nats: no Pub/Sub push handlers are registered, and receiving from NATS isn't implemented yet, so this service gets no messages",
+		)
+		return &Subscriber{newIdleSubscriber()}
+	default:
+		panic(fmt.Sprintf("subscriber: unknown broker %q (BROKER must be %q or %q)", config.Broker, BrokerPubSub, BrokerNATS))
+	}
+
 	subscriber, err := googlecloud_http.NewSubscriber(
 		googlecloud_http.SubscriberConfig{
 			RegisterHttpHandler: registerHttpHandler,
@@ -46,6 +77,43 @@ func NewSubscriber(
 	}
 
 	return &Subscriber{subscriber}
+}
+
+// idleSubscriber delivers no messages. Its channels stay open until Close, so
+// the router's handlers keep running instead of stopping the router.
+type idleSubscriber struct {
+	mu       sync.Mutex
+	closed   bool
+	channels []chan *message.Message
+}
+
+func newIdleSubscriber() *idleSubscriber {
+	return &idleSubscriber{}
+}
+
+func (s *idleSubscriber) Subscribe(_ context.Context, _ string) (<-chan *message.Message, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ch := make(chan *message.Message)
+	if s.closed {
+		close(ch)
+		return ch, nil
+	}
+	s.channels = append(s.channels, ch)
+	return ch, nil
+}
+
+func (s *idleSubscriber) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return nil
+	}
+	s.closed = true
+	for _, ch := range s.channels {
+		close(ch)
+	}
+	return nil
 }
 
 func InitTracedRouter(logger *logging.Logger) *message.Router {
