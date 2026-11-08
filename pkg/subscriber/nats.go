@@ -176,16 +176,16 @@ func (s *natsSubscriber) nacked(m *message.Message, b natsBinding, maxDeliver in
 		return
 	}
 	fields := []any{
-		logging.StringField("msg_uuid", m.UUID),
-		logging.StringField("subject", m.Metadata.Get(MetadataNATSSubject)),
-		logging.StringField("consumer", b.Durable),
-		logging.StringField("dlq_subject", b.dlqSubject()),
+		logging.String("msg_uuid", m.UUID),
+		logging.String("subject", m.Metadata.Get(MetadataNATSSubject)),
+		logging.String("consumer", b.Durable),
+		logging.String("dlq_subject", b.dlqSubject()),
 	}
 	if err := s.publishDLQ(m, b, delivered); err != nil {
 		// JetStream won't deliver it again (MaxDeliver), so it stays in
 		// the stream until MaxAge without being handled.
 		s.logger.Error("Failed to publish to the DLQ after the last delivery; the message is not handled",
-			append(fields, logging.ErrorField(err))...)
+			append(fields, logging.Error(err))...)
 		m.Nack()
 		return
 	}
