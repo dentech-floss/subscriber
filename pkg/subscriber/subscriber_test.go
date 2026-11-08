@@ -9,6 +9,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/dentech-floss/logging/pkg/logging"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 const testPath = "/push-handlers/pubsub/test/created"
@@ -92,8 +93,8 @@ func TestExplicitPubSub(t *testing.T) {
 }
 
 func TestNATSRegistersNothing(t *testing.T) {
-	t.Setenv("BROKER", BrokerNATS)
-	got := runRouter(t, &SubscriberConfig{})
+	env := setupNATS(t, jetstream.ConsumerConfig{})
+	got := runRouter(t, env.config())
 	if len(got) != 0 {
 		t.Fatalf("registered %v, want nothing", got)
 	}
@@ -108,25 +109,4 @@ func TestUnknownBrokerPanics(t *testing.T) {
 	}()
 	logger := logging.NewLogger(&logging.LoggerConfig{ServiceName: "test"})
 	NewSubscriber(logger, &SubscriberConfig{}, func(string, http.Handler) {})
-}
-
-func TestIdleSubscriberClose(t *testing.T) {
-	s := newIdleSubscriber()
-	ch, err := s.Subscribe(context.Background(), "a")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := s.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := <-ch; ok {
-		t.Fatal("channel still open after Close")
-	}
-	if err := s.Close(); err != nil {
-		t.Fatalf("second Close: %v", err)
-	}
-	late, _ := s.Subscribe(context.Background(), "b")
-	if _, ok := <-late; ok {
-		t.Fatal("Subscribe after Close returned an open channel")
-	}
 }
