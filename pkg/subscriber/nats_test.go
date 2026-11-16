@@ -243,11 +243,15 @@ func TestNATSDelivery(t *testing.T) {
 	}
 }
 
+// Each wait between deliveries must be the BackOff step, not more: a nak
+// delay on top of the server's BackOff once made the waits about twice as
+// long (P5.30).
 func TestNATSRedeliveryAfterBackOff(t *testing.T) {
-	backoff := 400 * time.Millisecond
+	backoff := []time.Duration{300 * time.Millisecond, 900 * time.Millisecond}
+	const slack = 250 * time.Millisecond
 	env := setupNATS(t, jetstream.ConsumerConfig{
-		MaxDeliver: 3,
-		BackOff:    []time.Duration{backoff, backoff},
+		MaxDeliver: 4,
+		BackOff:    backoff,
 	})
 
 	var mu sync.Mutex
@@ -257,8 +261,8 @@ func TestNATSRedeliveryAfterBackOff(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		times = append(times, time.Now())
-		if len(times) == 1 {
-			return errors.New("first try fails")
+		if len(times) < 3 {
+			return errors.New("the first two tries fail")
 		}
 		close(done)
 		return nil
@@ -267,14 +271,17 @@ func TestNATSRedeliveryAfterBackOff(t *testing.T) {
 
 	select {
 	case <-done:
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("not redelivered")
 	}
 	env.waitSettled(t)
 	mu.Lock()
 	defer mu.Unlock()
-	if gap := times[1].Sub(times[0]); gap < backoff-50*time.Millisecond {
-		t.Errorf("redelivered after %s, want the BackOff of %s", gap, backoff)
+	for i, want := range backoff {
+		gap := times[i+1].Sub(times[i])
+		if gap < want-50*time.Millisecond || gap > want+slack {
+			t.Errorf("delivery %d came %s after delivery %d, want the BackOff of %s", i+2, gap, i+1, want)
+		}
 	}
 }
 
@@ -454,14 +461,12 @@ func TestNATSConfigErrorsPanic(t *testing.T) {
 	}
 }
 
-func TestBackoffDelay(t *testing.T) {
-	d := backoffDelay{time.Second, time.Minute}
-	for delivered, want := range map[uint64]time.Duration{0: time.Second, 1: time.Second, 2: time.Minute, 9: time.Minute} {
-		if got := d.WaitTime(delivered); got != want {
-			t.Errorf("WaitTime(%d) = %s, want %s", delivered, got, want)
-		}
+func TestNakDelay(t *testing.T) {
+	cfg := jetstream.ConsumerConfig{AckWait: 30 * time.Second, BackOff: []time.Duration{30 * time.Second, time.Minute}}
+	if got := nakDelay(cfg).WaitTime(2); got != 30*time.Second {
+		t.Errorf("with BackOff: %s, want AckWait (30s)", got)
 	}
-	if got := (backoffDelay(nil)).WaitTime(3); got != 0 {
-		t.Errorf("no BackOff: %s, want 0 (nak at once)", got)
+	if d := nakDelay(jetstream.ConsumerConfig{AckWait: 30 * time.Second}); d != nil {
+		t.Errorf("no BackOff: %v, want nil (nak at once)", d)
 	}
 }

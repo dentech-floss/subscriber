@@ -126,7 +126,7 @@ func (s *natsSubscriber) Subscribe(ctx context.Context, url string) (<-chan *mes
 			c, err := js.Consumer(ctx, b.Stream, b.Durable)
 			return c, nil, err
 		},
-		NakDelay:    backoffDelay(cfg.BackOff),
+		NakDelay:    nakDelay(cfg),
 		Unmarshaler: natsUnmarshaler{},
 	})
 	if err != nil {
@@ -236,23 +236,17 @@ func (s *natsSubscriber) Close() error {
 	return errors.Join(errs...)
 }
 
-// backoffDelay is the consumer's BackOff applied to nacks: JetStream itself
-// uses BackOff only for messages that aren't acked in time, and redelivers
-// a plain nack at once.
-type backoffDelay []time.Duration
-
-func (d backoffDelay) WaitTime(numDelivered uint64) time.Duration {
-	if len(d) == 0 {
-		return 0
+// nakDelay makes a nacked message wait exactly the consumer's BackOff step.
+// JetStream redelivers a plain nak at once and applies BackOff only to
+// messages that aren't acked within AckWait. A nak with delay d restarts that
+// clock as if the message had been delivered AckWait - d ago, so the next
+// delivery comes d + BackOff[n] - AckWait later. With d = AckWait that is
+// BackOff[n]. Without a BackOff the nak is plain: redelivered at once.
+func nakDelay(cfg jetstream.ConsumerConfig) wmjs.Delay {
+	if len(cfg.BackOff) == 0 || cfg.AckWait <= 0 {
+		return nil
 	}
-	i := int(numDelivered) - 1
-	if i < 0 {
-		i = 0
-	}
-	if i >= len(d) {
-		i = len(d) - 1
-	}
-	return d[i]
+	return wmjs.NewStaticDelay(cfg.AckWait)
 }
 
 // natsReservedHeaders aren't copied to the message metadata.
