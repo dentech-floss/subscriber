@@ -48,7 +48,7 @@ How messages are handled:
 
 - **Settings come from the server:** `MaxDeliver`, `BackOff` and `AckWait` are read from the consumer when the router subscribes.
 - **Ack** (the handler returns nil, or `HandleMessage` acks): the message is done.
-- **Nack** (the handler returns an error, or `HandleMessage` nacks): the message is redelivered after the consumer's `BackOff` step for that delivery (JetStream itself applies `BackOff` only to messages that aren't acked within `AckWait`, so the library sends the delay with the nack). Without a `BackOff`, at once.
+- **Nack** (the handler returns an error, or `HandleMessage` nacks): the message is redelivered after the consumer's `BackOff` step for that delivery. JetStream applies `BackOff` only to messages that aren't acked within `AckWait` and redelivers a plain nack at once, so the library nacks with a delay of `AckWait`: the server counts the `BackOff` step from `AckWait` before the nack, so the wait is exactly the step. Without a `BackOff`, at once.
 - **Last delivery:** when a nack comes on delivery number `MaxDeliver`, the message is published to `dlq.<service>.<durable>` and acked. The DLQ message keeps the payload, the UUID and the metadata, plus `dlq_subject`, `dlq_stream`, `dlq_consumer`, `dlq_service` and `dlq_deliveries`. A stream must capture `dlq.>`.
 - **Metadata:** NATS headers become message metadata (the trace context too, so tracing works across services as with Pub/Sub), plus `_nats_subject` and `_nats_num_delivered`.
 - **Fails loudly:** `NewSubscriber` panics on a missing setting, an invalid mapping file or when it can't connect. `router.Run` returns an error if a URL isn't in the mapping or its consumer doesn't exist.
