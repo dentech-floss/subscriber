@@ -9,7 +9,7 @@ require (
 	github.com/dentech-floss/watermill-googlecloud-http v0.1.5
 	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.2
 	github.com/nats-io/nats-server/v2 v2.15.2
-	github.com/nats-io/nats.go v1.55.0
+	github.com/nats-io/nats.go v1.56.0
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	go.yaml.in/yaml/v3 v3.0.6
 	google.golang.org/protobuf v1.36.12
